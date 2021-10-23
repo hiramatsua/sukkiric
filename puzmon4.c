@@ -113,7 +113,7 @@ int goDungeon(char* playerName, Dungeon* eDungeon, Party* eParty)
         } else {
             printf("%sはさらに奥へと進んだ。\n", playerName);
             printf("==========\n\n");
-            
+            printf("何かキーを押してください。\n");
             getchar();
         }
     }
