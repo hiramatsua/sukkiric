@@ -114,6 +114,7 @@ int goDungeon(char* playerName, Dungeon* eDungeon, Party* eParty)
             printf("%sはさらに奥へと進んだ。\n", playerName);
             printf("==========\n\n");
             
+            getchar();
         }
     }
     return knockDownMonsterNum;
