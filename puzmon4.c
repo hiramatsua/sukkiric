@@ -1,6 +1,9 @@
 /* パズルRPGプログラム Ver4.0 */
 /* puzmon4.c */
 #include <stdio.h>
+// #include <stdlib.h>
+// #include <time.h>
+// #include <stdbool.h>
 
 typedef char String[1024];
 
@@ -14,6 +17,8 @@ typedef enum Element {FIRE, WATER, WIND, EARTH, LIFE, EMPTY} Element;
 const char ELEMENT_SYMBOLS[EMPTY+1] = {'$', '~', '@', '#', '&', ' '};
 /* <<c>>属性別のカラーコード（ディスプレイ制御シーケンス用）*/
 const char ELEMENT_COLORS[EMPTY+1] = {1, 6, 2, 3, 5, 0};
+// <<d>>宝石数
+enum {MAX_GEMS = 14};
 
 // 構造体型宣言<モンスター>
 typedef struct {  
@@ -54,6 +59,13 @@ typedef struct {
     int hp;           /* HP */
     int defense;      /* 防御力 */
 } Party;
+
+// 構造体型宣言＜バトルフィールド＞
+typedef struct BATTLE_FIELD {
+    Party* eParty;      /* パーティー */
+    Monster* eEmemy;    /* 敵モンスター */
+    Element gems[MAX_GEMS]; /* 宝石 */
+} BattleField;
 
 // 関数宣言
 int goDungeon(char* playerName, Dungeon* eDungeon, Party* eParty);
