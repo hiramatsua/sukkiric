@@ -1,8 +1,8 @@
 /* パズルRPGプログラム Ver4.0 */
 /* puzmon4.c */
 #include <stdio.h>
-// #include <stdlib.h>
-// #include <time.h>
+#include <stdlib.h>
+#include <time.h>
 // #include <stdbool.h>
 
 typedef char String[1024];
@@ -63,20 +63,26 @@ typedef struct {
 // 構造体型宣言＜バトルフィールド＞
 typedef struct BATTLE_FIELD {
     Party* eParty;      /* パーティー */
-    Monster* eEmemy;    /* 敵モンスター */
+    Monster* eEnemy;    /* 敵モンスター */
     Element gems[MAX_GEMS]; /* 宝石 */
 } BattleField;
 
 // 関数宣言
 int goDungeon(char* playerName, Dungeon* eDungeon, Party* eParty);
 int doBattle(char* playerName, Monster* eMonster, Party* eParty);
-void printMonsterName(Monster* monsters);
 Party organizeParty(char* playName, Monster* monsters, int numMonsters);
 void showParty(Party* eParty);
-void doAttack(Monster *eEnemy);
-void onPlayerTurn(char* playerName, Monster* eEnemy, Party* eParty);
-void onEnemyTurn(char* playerName, Monster* eEnemy, Party* eParty);
-void doEnemyAttack(char* playerName, Party* eParty);
+void showBattleField(BattleField *pField);
+
+void doAttack(BattleField* eField);
+void onPlayerTurn(char* playerName, BattleField* eField);
+void onEnemyTurn(char* playerName, BattleField* eField);
+void doEnemyAttack(char* playerName, BattleField* eField);
+
+void printMonsterName(Monster* monsters);
+void fillGems(Element* gems);
+void printGems(Element* gems);
+void printGem(Element element);
 
 // main
 int main(int argc, char** argv)
@@ -87,6 +93,7 @@ int main(int argc, char** argv)
         printf("ERROR : プレイヤー名を指定して起動してください。");
         return ERR;
     }
+    // ゲーム開始 初期画面
     printf("*** Puzzle & Monsters game ***\n");
     // パーティ準備
     Party party = organizeParty(PLAYER, allies, 4);
@@ -102,7 +109,6 @@ int main(int argc, char** argv)
     }else{
         printf("*** GAME OVER! ***\n");
     }
-    
     printf("倒したモンスター数＝%d\n", winCnt);
     return OK;
 }
@@ -141,20 +147,24 @@ int doBattle(char* playerName, Monster* eMonster, Party* eParty)
     // printf("%s", enemyName);
     printMonsterName(eMonster);
     printf("が現れた！\n");
+
+    // バトルフィールドの宝石スロットの準備と初期化
+    BattleField field = {eParty, eMonster};   /* 変数field（型：BattleField）*/
+    fillGems(field.gems);   /* Element* gems */
+
     // 交互ターン繰り返し
     while (1) {
         // パーティー側のターン
-        onPlayerTurn(playerName, eMonster, eParty);
-        if (eMonster->hp <= 0) {    // モンスターを倒した
+        onPlayerTurn(playerName, &field);
+        if (eMonster->hp <= 0) {    // モンスタHP0以下
             printMonsterName(eMonster);
             printf("を倒した！\n");
             return winFlg;
             //break;
         }
-        
         // モンスター側のターン
-        onEnemyTurn(playerName, eMonster, eParty);
-        if (eParty->hp <= 0) {    // パーティHP０以下
+        onEnemyTurn(playerName, &field);
+        if (eParty->hp <= 0) {    // パーティHP0以下
             printf("%sは倒れた。。。\n", playerName);
             return loseFlg;
             //break;
@@ -163,35 +173,36 @@ int doBattle(char* playerName, Monster* eMonster, Party* eParty)
 }
 
 // <<6>>プレイヤーターン開始から終了までの流れ
-void onPlayerTurn(char* playerName, Monster* eEnemy, Party* eParty)
+void onPlayerTurn(char* playerName, BattleField* eField)
 {
-    printf("【%s】のターン\n", playerName);
-    doAttack(eEnemy);
+    printf("【%sのターン】\n", playerName);
+    showBattleField(eField);
+    doAttack(eField);
 }
 
 // <<7>>パーティの攻撃の開始から終了までの流れ
-void doAttack(Monster* eEnemy)
+void doAttack(BattleField* eField)
 {
     int pDamage = 80;
 
     printf("ダミーの攻撃で%dのダメージを与えた。\n", pDamage);
-    eEnemy->hp -= pDamage;
+    eField->eEnemy->hp -= pDamage;
     // printf("モンスターのHP=%d", (eEnemy->hp) - pDamage);
 }
 
 // <<8>>敵モンスターターン開始から終了までの流れ
-void onEnemyTurn(char* playerName, Monster* eEnemy, Party* eParty)
+void onEnemyTurn(char* playerName, BattleField* eField)
 {
-    printf("【%s】のターン\n", eEnemy->name);
-    doEnemyAttack(playerName, eParty);
+    printf("【%s】のターン\n", eField->eEnemy->name);
+    doEnemyAttack(playerName, eField);
 }
 
 // <<9>>モンスターの攻撃の開始から終了までの流れ
-void doEnemyAttack(char* playerName, Party* eParty)
+void doEnemyAttack(char* playerName, BattleField* eField)
 {
     int mDamage = 20;
 
-    eParty->hp -= mDamage;
+    eField->eParty->hp -= mDamage;
     printf("%sは、%dのダメージを受けた。\n", playerName, mDamage);
 }
 
@@ -210,20 +221,20 @@ void printMonsterName(Monster* eMonsters)
 // (4)パーティ編成処理
 Party organizeParty(char* playerName, Monster* monsters, int numMonsters)
 {
-  int sumHp = 0;
-  int sumDefense = 0;
-  int avgDefense = 0;
+    int sumHp = 0;
+    int sumDefense = 0;
+    int avgDefense = 0;
 
-  for(int i = 0; i < numMonsters; i++) {
-    sumHp += monsters[i].hp;
-    sumDefense += monsters[i].defense;
-    // printf("%s\n", monsters[i].name);
-  }
-  avgDefense = sumDefense / numMonsters;
-
-  Party partyInfo = {playerName, monsters, numMonsters, sumHp, sumHp, avgDefense};
+    for(int i = 0; i < numMonsters; i++) {
+        sumHp += monsters[i].hp;
+        sumDefense += monsters[i].defense;
+        // printf("%s\n", monsters[i].name);
+    }
+    avgDefense = sumDefense / numMonsters;
+    // 変数partyInfo に代入
+    Party partyInfo = {playerName, monsters, numMonsters, sumHp, sumHp, avgDefense};
   
-  return partyInfo;
+    return partyInfo;
 }
 
 // (5)パーティ編成情報の一覧表示
@@ -240,4 +251,60 @@ void showParty(Party* eParty)
         );
     }
     printf("------------------------\n\n");    
+}
+
+// バトルフィールドの宝石スロットにランダムに宝石を発生させる
+void fillGems(Element* gems) {
+    
+    for(int i = 0; i < MAX_GEMS; i++) {
+        gems[i] = rand() % EMPTY;
+        // printf("%d", gems[i]);
+    }
+    // printf("\n");
+}
+
+// バトルフィールドの宝石スロット14個分を画面表示させる
+void printGems(Element* gems) {
+
+    for(int i = 0; i < MAX_GEMS; i++) {
+        printf(" ");
+        printGem(gems[i]);
+    }
+    printf("\n");
+}
+
+// 宝石1個分を画面表示させる
+void printGem(Element element) {
+
+    // printf("\x1b[30m");       // 黒文字
+    // printf("\x1b[4%dm", ELEMENT_COLORS[element]); // 属性色背景
+    printf("%c", ELEMENT_SYMBOLS[element]);
+    // printf("\x1b[0m");        // 色指定解除
+}
+
+//バトルフィールド情報の表示をする
+void showBattleField(BattleField *eField) {
+    
+    printf("------------------------------\n\n");
+    printf("          ");
+    // 敵モンスターHPの表示
+    printMonsterName(eField->eEnemy);
+    printf("\n       HP= %4d / %4d\n", eField->eEnemy->hp, eField->eEnemy->maxhp);
+    printf("\n\n");
+    // パーティHPの表示
+    for(int i = 0; i < eField->eParty->numMonsters; i++) {
+        printMonsterName(&(eField->eParty->monsters[i]));
+        printf("  ");
+    }
+    printf("\n");
+    printf("       HP= %4d / %4d\n", eField->eParty->hp, eField->eParty->maxHp);
+    printf("------------------------------\n");
+    printf(" ");
+    // 宝石スロットの表示
+    for(int i = 0; i < MAX_GEMS; i++ ){
+        printf("%c ", 'A'+i);
+    }
+    printf("\n");
+    printGems(eField->gems);
+    printf("------------------------------\n");
 }
