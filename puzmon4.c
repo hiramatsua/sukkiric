@@ -3,7 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-// #include <stdbool.h>
+#include <stdbool.h>
+#include <string.h>
 
 typedef char String[1024];
 
@@ -83,6 +84,8 @@ void printMonsterName(Monster* monsters);
 void fillGems(Element* gems);
 void printGems(Element* gems);
 void printGem(Element element);
+
+bool checkValidCommand(char* command);
 
 // main
 int main(int argc, char** argv)
@@ -175,8 +178,16 @@ int doBattle(char* playerName, Monster* eMonster, Party* eParty)
 // <<6>>プレイヤーターン開始から終了までの流れ
 void onPlayerTurn(char* playerName, BattleField* eField)
 {
+    char command[3];
+
     printf("【%sのターン】\n", playerName);
     showBattleField(eField);
+    // コマンドの入力
+    do {
+        printf("コマンド？> ");
+        scanf("%2s", command);
+    } while(checkValidCommand(command)== false);
+
     doAttack(eField);
 }
 
@@ -307,4 +318,19 @@ void showBattleField(BattleField *eField) {
     printf("\n");
     printGems(eField->gems);
     printf("------------------------------\n");
+}
+
+bool checkValidCommand(char* command) {
+
+    // printf("%d\n", strlen(command));
+    // コマンドは2文字であること
+    if (strlen(command)!= 2) return false;
+    // 1文字目＝2文字目はNG
+    if (command[0] == command[1])   return false;
+    // 1文字目が、A-Nの範囲でなければNG
+    if (command[0] < 'A'|| command[0] > 'N')  return false;    
+    // 2文字目が、A-Nの範囲でなければNG
+    if (command[1] < 'A'|| command[1] > 'N')  return false;    
+
+    return true;
 }
